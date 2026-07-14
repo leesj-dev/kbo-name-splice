@@ -1,0 +1,368 @@
+<meta charset="utf-8"/>
+<title>선수 이름 이어붙이기</title>
+<style>
+  @font-face {
+    font-family: 'Pretendard';
+    src: url(data:font/woff2;base64,__FONT_B64__) format('woff2');
+    font-weight: 45 930;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --bg: #0a0a0d;
+    --bg-el: #131318;
+    --bg-el-2: #1a1a21;
+    --line: #26262e;
+    --line-soft: #1c1c22;
+    --ink: #f2f1ee;
+    --ink-dim: #98979f;
+    --ink-faint: #58585f;
+    --accent: #4066ff;
+    --accent-soft: rgba(64,102,255,.15);
+    --accent-ink: #ffffff;
+    --shadow: 0 1px 0 rgba(0,0,0,.4), 0 16px 32px -18px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    font-feature-settings: 'ss05' 1, 'tnum' 1;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse 1100px 560px at 50% -10%, rgba(64,102,255,.16) 0%, transparent 62%);
+  }
+  .wrap { position: relative; z-index: 1; max-width: 940px; margin: 0 auto; padding: 64px 22px 100px; }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .stage-in { animation: rise .6s cubic-bezier(.2,.7,.25,1) both; }
+  @media (prefers-reduced-motion: reduce) { .stage-in { animation: none; } }
+
+  h1 {
+    font-weight: 800;
+    font-size: clamp(34px, 5.4vw, 54px);
+    line-height: 1.08;
+    margin: 0 0 28px;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+  }
+
+  .rule-card {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 28px;
+    background: var(--bg-el);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px 28px;
+    animation-delay: .08s;
+  }
+  .rule-text { font-size: 15px; color: var(--ink-dim); font-weight: 400; margin: 0; align-self: center; }
+  .rule-text b { color: var(--ink); font-weight: 700; }
+  .examples {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border-left: 1px solid var(--line);
+    padding-left: 26px;
+  }
+  .examples .eg {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    white-space: nowrap;
+  }
+  .examples .eg b { color: var(--accent); font-weight: 800; }
+  .examples .eg .arrow { color: var(--ink-faint); margin: 0 6px; font-weight: 400; }
+  .examples .eg .result { color: var(--ink); font-weight: 800; }
+
+  @media (max-width: 680px) {
+    .rule-card { grid-template-columns: 1fr; }
+    .examples { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 18px; }
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin: 22px 0 24px;
+    animation-delay: .14s;
+  }
+  .stat {
+    background: var(--bg-el);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 12px 12px;
+  }
+  .stat .n { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 11px; color: var(--ink-faint); margin-top: 3px; line-height: 1.4; font-weight: 500; }
+
+  .filters {
+    background: var(--bg-el);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 22px 20px;
+    margin-bottom: 18px;
+    animation-delay: .2s;
+  }
+  .filter-row { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+  .filter-group { display: flex; flex-direction: column; gap: 8px; }
+  .filter-group .glabel { font-size: 11px; color: var(--ink-faint); font-weight: 700; letter-spacing: .04em; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: inherit;
+    font-feature-settings: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .chip:hover { border-color: var(--ink-faint); color: var(--ink); }
+  .chip.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .search-wrap { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 8px; }
+  .search-wrap .glabel { font-size: 11px; color: var(--ink-faint); font-weight: 700; letter-spacing: .04em; }
+  #search {
+    width: 100%;
+    background: var(--bg-el-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 14.5px;
+    color: var(--ink);
+    font-family: inherit;
+    font-feature-settings: inherit;
+    outline: none;
+  }
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--ink-faint); }
+
+  #count-line { font-size: 12.5px; color: var(--ink-faint); margin: 2px 4px 12px; font-variant-numeric: tabular-nums; }
+  #count-line b { color: var(--ink); font-weight: 700; }
+
+  #list { display: flex; flex-direction: column; }
+  .row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px 13px 20px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--line-soft);
+    transition: background .12s ease;
+  }
+  .row::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform .15s ease;
+  }
+  .row:hover { background: var(--bg-el); }
+  .row:hover::before { transform: scaleY(1); }
+  .row:first-child { border-top: 1px solid var(--line-soft); }
+
+  .side { display: flex; align-items: center; gap: 7px; font-size: 15.5px; color: var(--ink-dim); font-weight: 500; }
+  .side .name .stitch { color: var(--accent); font-weight: 800; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .dot.active { background: var(--accent); }
+  .dot.retired { background: transparent; border: 1.5px solid var(--ink-faint); }
+  .dot.other { background: transparent; border: 1.5px solid var(--accent); }
+  .team { font-size: 11px; font-weight: 700; letter-spacing: .02em; color: var(--ink-faint); white-space: nowrap; }
+  .plus { color: var(--ink-faint); font-size: 13px; }
+  .arrow { color: var(--ink-faint); font-size: 14px; }
+  .merged { font-weight: 800; font-size: 17px; margin-left: auto; }
+  .merged .stitch { color: var(--accent); }
+
+  #empty { display: none; text-align: center; padding: 50px 20px; color: var(--ink-faint); font-size: 14px; }
+
+  @media (max-width: 640px) {
+    .stats { grid-template-columns: repeat(3, 1fr); }
+    .stat:nth-child(4), .stat:nth-child(5) { display: none; }
+    .row { font-size: 14px; padding-left: 16px; }
+    .merged { width: 100%; margin-left: 0; margin-top: 4px; }
+  }
+  @media (max-width: 420px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1 class="stage-in">선수 이름 이어붙이기</h1>
+  </header>
+
+  <div class="rule-card stage-in">
+    <p class="rule-text">한 선수 등록명의 <b>뒤 두 글자</b>가 다른 선수 등록명의 <b>앞 두 글자</b>와 같으면, 겹치는 부분을 한 번만 써서 이어붙일 수 있다. 2글자 이하 등록명은 대상에서 제외했다.</p>
+    <div class="examples">
+      <span class="eg">최원<b>태</b> <span class="arrow">+</span> <b>원태</b>인 <span class="arrow">→</span> <span class="result">최원태인</span></span>
+      <span class="eg">에레<b>디아</b> <span class="arrow">+</span> <b>디아</b>즈 <span class="arrow">→</span> <span class="result">에레디아즈</span></span>
+    </div>
+  </div>
+
+  <div class="stats stage-in">
+    <div class="stat"><div class="n" id="stat-total"></div><div class="l">수집 선수</div></div>
+    <div class="stat"><div class="n" id="stat-eligible"></div><div class="l">3자↑ 등록명 선수</div></div>
+    <div class="stat"><div class="n" id="stat-unique"></div><div class="l">고유 등록명</div></div>
+    <div class="stat"><div class="n" id="stat-pairs"></div><div class="l">이름 조합</div></div>
+    <div class="stat"><div class="n" id="stat-rows"></div><div class="l">실제 선수 매치업</div></div>
+  </div>
+
+  <div class="filters stage-in">
+    <div class="filter-row">
+      <div class="filter-group">
+        <div class="glabel">상태</div>
+        <div class="chips" id="chips-status">
+          <button class="chip on" data-val="active">현역</button>
+          <button class="chip on" data-val="retired">은퇴</button>
+          <button class="chip on" data-val="other">육성선수</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="glabel">국적</div>
+        <div class="chips" id="chips-nation">
+          <button class="chip on" data-val="domestic">한국인</button>
+          <button class="chip on" data-val="foreign">외국인</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="glabel">소속팀</div>
+        <div class="chips">
+          <button class="chip" id="chip-sameteam">동일 팀만</button>
+        </div>
+      </div>
+      <div class="search-wrap">
+        <div class="glabel">검색</div>
+        <input id="search" type="text" placeholder="이름으로 필터… (예: 원태, 디아)" autocomplete="off" />
+      </div>
+    </div>
+  </div>
+
+  <div id="count-line"></div>
+  <div id="list"></div>
+  <div id="empty">일치하는 결과가 없습니다.</div>
+</div>
+
+<script>
+  const DATA = __PAYLOAD__;
+  const rows = DATA.rows;
+
+  document.getElementById('stat-total').textContent = DATA.meta.total_players.toLocaleString();
+  document.getElementById('stat-eligible').textContent = DATA.meta.eligible_players.toLocaleString();
+  document.getElementById('stat-unique').textContent = DATA.meta.unique_names.toLocaleString();
+  document.getElementById('stat-pairs').textContent = DATA.meta.unique_pairs.toLocaleString();
+  document.getElementById('stat-rows').textContent = DATA.meta.total_rows.toLocaleString();
+
+  const state = {
+    status: new Set(['active', 'retired', 'other']),
+    nation: new Set(['domestic', 'foreign']),
+    sameTeamOnly: false,
+    query: '',
+  };
+
+  function esc(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function statusLabel(s) {
+    return s === 'active' ? '현역' : s === 'retired' ? '은퇴' : '육성선수';
+  }
+
+  function rowHTML(r) {
+    const aName = (r.ap ? esc(r.ap) : '') + '<span class="stitch">' + esc(r.st) + '</span>';
+    const bName = '<span class="stitch">' + esc(r.st) + '</span>' + (r.bs ? esc(r.bs) : '');
+    const mHTML = (r.ap ? esc(r.ap) : '') + '<span class="stitch">' + esc(r.st) + '</span>' + (r.bs ? esc(r.bs) : '');
+    return '<div class="row">' +
+      '<div class="side a">' +
+        '<span class="dot ' + r.aStatus + '" title="' + statusLabel(r.aStatus) + '"></span>' +
+        '<span class="team">' + esc(r.aTeam || '—') + '</span>' +
+        '<span class="name">' + aName + '</span>' +
+      '</div>' +
+      '<span class="plus">+</span>' +
+      '<div class="side b">' +
+        '<span class="name">' + bName + '</span>' +
+        '<span class="team">' + esc(r.bTeam || '—') + '</span>' +
+        '<span class="dot ' + r.bStatus + '" title="' + statusLabel(r.bStatus) + '"></span>' +
+      '</div>' +
+      '<span class="arrow">&rarr;</span>' +
+      '<span class="merged">' + mHTML + '</span>' +
+      '</div>';
+  }
+
+  function passes(r) {
+    if (!state.status.has(r.aStatus) || !state.status.has(r.bStatus)) return false;
+    const aNat = r.aForeign ? 'foreign' : 'domestic';
+    const bNat = r.bForeign ? 'foreign' : 'domestic';
+    if (!state.nation.has(aNat) || !state.nation.has(bNat)) return false;
+    if (state.sameTeamOnly && !(r.aTeam && r.bTeam && r.aTeam === r.bTeam)) return false;
+    if (state.query && !(r.a.includes(state.query) || r.b.includes(state.query) || r.m.includes(state.query))) return false;
+    return true;
+  }
+
+  function render() {
+    const filtered = rows.filter(passes);
+    document.getElementById('count-line').innerHTML =
+      '<b>' + filtered.length.toLocaleString() + '</b>건 표시 중 (전체 ' + rows.length.toLocaleString() + '건)';
+
+    const list = document.getElementById('list');
+    const empty = document.getElementById('empty');
+    if (filtered.length === 0) {
+      list.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    list.style.display = 'flex';
+    empty.style.display = 'none';
+    list.innerHTML = filtered.map(rowHTML).join('');
+  }
+
+  function bindChipGroup(containerId, targetSet) {
+    document.getElementById(containerId).addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip');
+      if (!btn) return;
+      const val = btn.dataset.val;
+      if (targetSet.has(val)) { targetSet.delete(val); btn.classList.remove('on'); }
+      else { targetSet.add(val); btn.classList.add('on'); }
+      render();
+    });
+  }
+
+  bindChipGroup('chips-status', state.status);
+  bindChipGroup('chips-nation', state.nation);
+
+  document.getElementById('chip-sameteam').addEventListener('click', (e) => {
+    state.sameTeamOnly = !state.sameTeamOnly;
+    e.target.classList.toggle('on', state.sameTeamOnly);
+    render();
+  });
+
+  document.getElementById('search').addEventListener('input', (e) => {
+    state.query = e.target.value.trim();
+    render();
+  });
+
+  render();
+</script>
