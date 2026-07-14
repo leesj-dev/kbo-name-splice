@@ -8,7 +8,6 @@
 
 ```
 python3 scrape.py          # data/players.json 생성 (야구나라 API에서 전체 선수 수집)
-python3 subset_font.py     # assets/pretendard-subset.woff2 생성 (최초 1회만 필요)
 python3 build_matches.py   # data/payload.json 생성 (이름 조합 계산)
 python3 render.py          # index.html 생성 (template.html + payload.json + 폰트를 하나로 합침)
 ```
